@@ -1,0 +1,60 @@
+{
+  "inputs": {
+    "images": [
+      1,
+      3,
+      640,
+      640
+    ]
+  },
+  "default_loader": {
+    "dataset_path": "./calibration_dataset",
+    "file_extensions": [
+      "jpeg",
+      "jpg",
+      "png",
+      "JPEG"
+    ],
+    "preprocessings": [
+      {
+        "resize": {
+          "width": 640,
+          "height": 640
+        }
+      },
+      {
+        "convertColor": {
+          "form": "BGR2RGB"
+        }
+      },
+      {
+        "div": {
+          "x": 255.0
+        }
+      },
+      {
+        "transpose": {
+          "axis": [
+            2,
+            0,
+            1
+          ]
+        }
+      },
+      {
+        "expandDim": {
+          "axis": 0
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "output0": [
+      1,
+      84,
+      8400
+    ]
+  },
+  "calibration_num": 100,
+  "calibration_method": "ema"
+}
