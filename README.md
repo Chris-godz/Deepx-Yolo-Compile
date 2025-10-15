@@ -1,49 +1,49 @@
-# 三步将AI模型转换为 DeepX 格式并完成精度评估
+# Convert AI Models to DeepX Format and Validate Accuracy in Three Steps
 
-## 项目简介
+English | [中文](./README_zh.md)
 
-本项目提供了一个完整的工作流，用于将 **YOLOv5su** 模型从原始的 PyTorch 格式 (`.pt`) 转换为 ONNX (`.onnx`)，并最终编译为专用于 DeepX 硬件的 `.dxnn` 格式。
+## Project Overview
 
-此外，我们还提供了的 **模型输出结果分析脚本**，通过对标准测试图片 (`test.jpg`) 进行推理，分析 `.dxnn` 模型与原始 `.pt` 模型输出的结果是否一致，体现模型在转换过程中是否成功。
+This project is an example of a **general, framework-agnostic method**: assessing whether a model conversion succeeds by comparing the consistency of two models’ outputs. We provide an end-to-end example converting the **YOLOv5su** model from PyTorch (.pt) to ONNX (.onnx) and compiling to the DeepX-specific .dxnn format. Finally, we use a **model output analysis script** to run inference on a standard test image (test.jpg) and compare outputs between the .dxnn and original .pt models to verify conversion fidelity. The approach itself applies to any toolchain and hardware target.
 
 ![Similarity Analysis](./similarity_analysis.png)
 
-## 工作流
+## Workflow
 
-### 1. 环境准备
+### 1. Environment Setup
 
-首先，确保你已经安装好了 DeepX 完整的 SDK。
+First, make sure you have the full DeepX SDK installed.
 
-具体的安装可以参考 DeepX 的官方 SDK Repo:
+For installation instructions, refer to the official DeepX SDK repository:
 
 https://github.com/DEEPX-AI/dx-all-suite#
 
-该 SDK 主要包含以下几个核心模块：
+The SDK includes the following core components:
 
-- **DX-Compiler**: 模型编译器，负责将标准的 ONNX 模型转换为针对 DeepX 硬件优化的 `.dxnn` 格式。
-- **DX-Runtime**: 推理引擎，用于在硬件上高效加载和执行 `.dxnn` 模型。
-- **DX-Profiler**: 性能分析工具，可以详细分析模型在硬件上运行时的各项性能指标。
-- **DX-Model-Zoo**: 提供了一系列预优化好的模型，方便用户快速上手和测试。
+- **DX-Compiler**: Compiles standard ONNX models into .dxnn optimized for DeepX hardware.
+- **DX-Runtime**: An inference engine for efficiently loading and executing .dxnn models on device.
+- **DX-Profiler**: A performance analysis tool that provides detailed runtime metrics on hardware.
+- **DX-Model-Zoo**: A collection of pre-optimized models to help you get started quickly.
 
-### 2. 模型格式转换
+### 2. Model Format Conversion
 
-转换过程分为两个步骤：
+The conversion consists of two steps:
 
-#### 第一步. 将 PyTorch (`.pt`) 格式模型 转换为 ONNX (`.onnx`) 格式模型
+#### Step 1. Convert PyTorch (.pt) to ONNX (.onnx)
 
-我们使用 `convert.py` 脚本将官方的 `yolov5su.pt` 模型导出为 ONNX 格式。
+Use the convert.py script to export the official yolov5su.pt model to ONNX:
 
 ```bash
 python convert.py
 ```
 
-该脚本会自动加载模型，并将其保存到 `./model/yolov5su.onnx`。注意: 这里我们的 Batch Size 设置为 1，以确保 DeepX 工具可以正确编译
+The script will load the model and save it to ./model/yolov5su.onnx. Note: we set the batch size to 1 to ensure the DeepX toolchain can compile it correctly.
 
 ![convert](./doc/convert.png)
 
-#### 第二步. 将 ONNX (`.onnx`) 格式模型 转换为 DXNN (`.dxnn`) 格式模型
+#### Step 2. Convert ONNX (.onnx) to DXNN (.dxnn)
 
-接下来，使用 DeepX 提供的 DX-Compiler 编译工具将 ONNX 模型转换为 `.dxnn` 格式。此步骤会针对特定硬件进行优化。
+Next, use the DeepX DX-Compiler to convert the ONNX model to .dxnn. This step performs optimizations for the target hardware.
 
 ```bash
 PATH_TO_DEEPX_COM/dx_com/dx_com \
@@ -51,59 +51,59 @@ PATH_TO_DEEPX_COM/dx_com/dx_com \
                 -o ./model/yolov5su.dxnn \
                 -c ./model/yolov5su.json
 ```
-编译完成后，我们得到了最终用于推理的 `yolov5su.dxnn` 模型。
+
+After compilation, you will get yolov5su.dxnn for inference.
 
 ![compiler](./doc/compiler.png)
 
-### 3. 模型输出相似度分析
+### 3. Output Similarity Analysis
 
-最后，运行 `yolo_analysis.py` 脚本，它会同时加载 `.pt` 和 `.dxnn` 模型，对 `test.jpg` 图片进行推理，得到 `.dxnn`模型与原始 `.pt` 模型输出的结果之间的相似度。
+Finally, run the yolo_analysis.py script. It loads both the .pt and .dxnn models, performs inference on test.jpg, and measures the similarity between their outputs.
 
 ```bash
 python yolo_analysis.py
 ```
 
-脚本执行后会输出详细的分析结果。我们选用了以下几个核心指标来全方位评估模型转换的保真度：
+The script prints detailed analysis results. We use the following core metrics to comprehensively assess conversion fidelity:
 
-#### 关键评估指标详解
+#### Key Metrics Explained
 
-1.  **余弦相似度 (Cosine Similarity)**
-    *   **代表什么**: 衡量两个向量在方向上的差异，而不关心它们的绝对大小。
-    *   **意义**: 结果越接近 **1**，表示 `.dxnn` 模型与 `.pt` 模型输出的特征向量在**方向上越一致**。这说明即使数值存在整体缩放，但特征模式得到了很好的保留。
-    *   它是评估深度学习模型特征相似性的黄金标准，能有效忽略编译优化可能带来的量化尺度变化。
+1. **Cosine Similarity**
+   - What it measures: The directional similarity between two vectors, independent of their magnitude.
+   - Why it matters: Values closer to 1 indicate the .dxnn output is aligned in direction with the .pt output. This shows the feature pattern is preserved even if there is a global scale change.
+   - It is a widely used standard for feature similarity and is robust to quantization-related scaling.
 
-2.  **皮尔逊相关系数 (Pearson Correlation)**
-    *   **代表什么**: 衡量两个数据集合之间的**线性相关程度**。
-    *   **意义**: 结果越接近 **1**，表示两个模型的输出值之间存在越强的**正向线性关系**。例如，如果原始模型某个位置的输出值变大，转换后的模型也应该相应变大。
-    *   用于判断模型转换后，输出值的变化趋势是否与原始模型保持了高度一致。
+2. **Pearson Correlation Coefficient**
+   - What it measures: The strength of the linear relationship between two sets of values.
+   - Why it matters: Values closer to 1 indicate a strong positive linear relationship. For example, when the original model’s output increases at a position, the converted model’s output also increases accordingly.
+   - Useful to verify whether the trend of outputs remains consistent after conversion.
 
-3.  **结构相似性 (SSIM)**
-    *   **代表什么**: 一种最初用于衡量图像相似度的指标，我们将其思想应用于一维特征向量，综合评估均值（亮度）、方差（对比度）和协方差（结构）的相似性。
-    *   **意义**: 结果越接近 **1**，表示转换后的模型输出在**统计特性上与原始模型越相似**，结构保持得越好。
-    *   它比传统的误差指标更能从统计学角度评估输出的保真度，提供了更丰富的比较维度。
+3. **Structural Similarity (SSIM)**
+   - What it measures: Originally designed for images, we apply the concept to 1D feature vectors to jointly evaluate mean (luminance), variance (contrast), and covariance (structure).
+   - Why it matters: Values closer to 1 indicate the converted model preserves the statistical characteristics of the original output.
+   - Offers a richer perspective than basic error metrics by capturing structural fidelity.
 
-4.  **均方误差 (MSE) & 平均绝对误差 (MAE)**
-    *   **代表什么**: 衡量两个模型输出值之间**绝对数值差异**的经典指标。
-    *   **意义**: 结果越接近 **0**，表示两个模型的输出在**数值上越接近**，精度损失越小。
-    *   它们是最直接、最量化的精度评估方式，直观反映了模型转换引入的误差大小。
+4. **Mean Squared Error (MSE) & Mean Absolute Error (MAE)**
+   - What they measure: Classic metrics for absolute numerical differences between two outputs.
+   - Why they matter: Values closer to 0 indicate the two outputs are numerically closer, implying minimal accuracy loss.
+   - Provide a direct, quantitative view of conversion-induced error.
 
-这些指标共同构成了一个全面的评估体系，确保我们能从多个角度科学、客观地判断模型转换是否成功。
+Together, these metrics provide a comprehensive, multi-angle evaluation so we can judge conversion success scientifically and objectively.
 
 ![analysis](./doc/analysis.png)
 
 ---
 
-在AI模型部署到边缘设备的过程中，如何确保转换后的模型在保持高性能的同时，又能维持与原始模型输出的一致性，是一个至关重要的问题。我们相信，通过本项目提供的这套标准化、自动化的评估流程，能够为AI工程师提供一个可靠的工具，快速评估模型转换是否成功。
+When deploying AI models to edge devices, ensuring that a converted model maintains output consistency while achieving high performance is critical. We hope this standardized, automated evaluation workflow offers AI engineers a reliable way to quickly validate whether a conversion has succeeded.
 
 ---
 
-**项目地址**：https://github.com/Chris-godz/Deepx-Yolo-Compile
+Project repository: https://github.com/Chris-godz/Deepx-Yolo-Compile
 
-**技术交流**：欢迎提交Issue或PR，共同完善这套评估体系。
+Community: Issues and PRs are welcome.
 
-**声明**：本项目中使用的YOLOv5模型版权归属原作者，DeepX SDK相关工具版权归属DEEPX公司。
+Disclaimer: The YOLOv5 model used in this project is copyrighted by its original authors. DeepX SDK tools are copyrighted by DEEPX.
 
 ---
 
-*这篇文档展示了我们在模型转换和精度验证方面的一次完整实践。如果您有任何问题或建议，欢迎随时与我们交流！*
-
+This document showcases a complete practice in model conversion and accuracy verification. If you have any questions or suggestions, we’d love to hear from you!
